@@ -70,10 +70,10 @@ SocksPort 9050 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDe
 ## to "auto" to have Tor pick a port for you. This directive can be
 ## specified multiple times to bind to multiple addresses/ports.
 ## See SocksPort for an explanation of isolation flags. (Default: 0)
-DNSPort 53
+DNSPort 9053
 
 ## User Username
 ##
 ## On startup, setuid to this user and setgid to their primary group.
 ## Can not be changed while tor is running
-User tor
+#User tor

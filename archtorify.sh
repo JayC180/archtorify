@@ -178,23 +178,24 @@ setup_general() {
     #
     # write nameserver 127.0.0.1 to etc/resolv.conf file
     # i.e. use Tor DNSPort
-    printf "%s\\n" "Configure resolv.conf file to use Tor DNSPort"
+    # printf "%s\\n" "Configure resolv.conf file to use Tor DNSPort"
 
     # backup current resolv.conf
-    if ! cp /etc/resolv.conf "${backup_dir}/resolv.conf.backup"; then
-        die "can't backup /etc/resolv.conf"
-    fi
+    # if ! cp /etc/resolv.conf "${backup_dir}/resolv.conf.backup"; then
+    #     die "can't backup /etc/resolv.conf"
+    # fi
 
     # if systemd-resolved is used then /etc/resolv.conf is a symlink to
     # /run/systemd/resolve/stub-resolv.conf, so remove it first.
-    if systemctl is-active systemd-resolved.service >/dev/null 2>&1; then
-        systemctl stop systemd-resolved.service
-        rm /etc/resolv.conf
-    fi
+    # if systemctl is-active systemd-resolved.service >/dev/null 2>&1; then
+    #     systemctl stop systemd-resolved.service
+    #     rm /etc/resolv.conf
+    # fi
 
     # write new nameserver
     printf "%s\\n" "nameserver 127.0.0.1" > /etc/resolv.conf
-
+    systemctl restart dnsmasq.service || die "Failed to start dnsmasq"
+    
     # reload systemd daemons for save changes
     printf  "%s\\n" "Reload systemd daemons"
     systemctl --system daemon-reload
@@ -370,8 +371,23 @@ start() {
         die "can't start tor.service, exit!"
     fi
 
+    cp /etc/dnsmasq-tor.conf /etc/dnsmasq.conf
+    systemctl restart dnsmasq
+    # echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+    # Start dnsmasq service for forwarding DNS to Tor DNSPort
+    printf "Start dnsmasq service\n"
+    systemctl enable --now dnsmasq
+
     # iptables settings
     setup_iptables tor_proxy
+
+    # Set /etc/resolv.conf to use local DNS resolver (dnsmasq)
+    # printf "Configure resolv.conf file to use 127.0.0.1\n"
+    # if ! cp /etc/resolv.conf "${backup_dir}/resolv.conf.backup"; then
+    #     die "can't backup /etc/resolv.conf"
+    # fi
+    # echo "nameserver 127.0.0.1" > /etc/resolv.conf
 
     # check program status
     printf "\\n"
@@ -395,21 +411,27 @@ stop() {
         # restore default iptables rules
         setup_iptables default
 
-        # restore /etc/resolv.conf:
-        printf "%s\\n" "Restore default DNS"
+	printf "Stop Tor service\n"
+	systemctl stop tor.service
+	systemctl disable tor.service
 
-        # if resolvconf is used restore the file with it
-        if hash resolvconf 2>/dev/null; then
-            resolvconf -u
-        # elif systemd-resolved is enabled restore symlink
-        # see: https://wiki.archlinux.org/title/Systemd-resolved#DNS
-        elif systemctl is-enabled systemd-resolved.service >/dev/null 2>&1; then
-            ln -rsf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-            systemctl start systemd-resolved
-        else
-        # restore original file from ${backup_dir}
-            cp "${backup_dir}/resolv.conf.backup" /etc/resolv.conf
-        fi
+	# Stop dnsmasq service
+        printf "Stop dnsmasq service\n"
+	cp /etc/dnsmasq-clearnet.conf /etc/dnsmasq.conf
+	systemctl enable dnsmasq
+	systemctl restart dnsmasq
+	# echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+        # restore /etc/resolv.conf:
+	#        printf "%s\\n" "Restore default DNS"
+	# if hash resolvconf 2>/dev/null; then
+	#            resolvconf -u
+	#        elif systemctl is-enabled systemd-resolved.service >/dev/null 2>&1; then
+	#            ln -rsf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+	#            systemctl start systemd-resolved
+	#        else
+	#            cp "${backup_dir}/resolv.conf.backup" /etc/resolv.conf
+	#        fi
 
         # enable IPv6
         printf "%s\\n" "Enable IPv6"

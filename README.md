@@ -1,3 +1,13 @@
+**This is a fork of [archtorify by brainfucksec](https://github.com/brainfucksec/archtorify/)**
+
+I was having issue running this tool on my machine, therefore making this fork. I resolved this issue by tweaking torrc and using dnsmasq instead of systemd-resolvd. 
+
+To use this version, run `setup.sh` after installation, then see usage below.
+
+Below is the original README
+
+---
+
 <p align="center">
 <img src="img/logo.png" alt="archtorify">
 </p>

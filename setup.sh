@@ -6,6 +6,8 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+pacman -Syu --noconfirm
+
 if ! pacman -Q tor &> /dev/null; then
     echo "installing tor"
     pacman -S --noconfirm tor
@@ -20,6 +22,9 @@ if ! pacman -Q dnsmasq &> /dev/null; then
     pacman -S --noconfirm dnsmasq
 fi
 
+systemctl enable dnsmasq.service
+systemctl start dnsmasq.service
+
 cat > "/etc/dnsmasq-tor.conf" <<EOF
 no-resolv
 server=127.0.0.1#9053
@@ -33,3 +38,4 @@ server=1.1.1.1
 listen-address=127.0.0.1
 EOF
 
+make install
